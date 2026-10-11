@@ -1,1 +1,1 @@
-{"collector_alert":"collector error: spindump report has no kernel_task [0] section","committed_at_utc":"2026-10-11T20:33:27.377+00:00","last_capture_age_seconds":88,"last_sequence":572,"nonce":"c19784781c50c06baafda14a45e213e8","samples_in_commit":3}
+{"collector_alert":null,"committed_at_utc":"2026-10-11T20:39:01.478+00:00","last_capture_age_seconds":28,"last_sequence":581,"nonce":"548e1dd49ffc43fa3c51df7275cb6e95","samples_in_commit":9}
