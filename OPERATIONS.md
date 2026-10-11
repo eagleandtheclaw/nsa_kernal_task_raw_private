@@ -25,6 +25,10 @@
 - Public derivatives preserve the private original's hashes but do not carry
   its root signature. Provenance verification still requires the private
   signed original. Full raw content is not in the public repository.
+- The public repository also includes a privacy-reviewed byte-for-byte copy
+  of the installed `capture.py` collector and its SHA-256 in
+  `SOURCE_HASHES.json`. The exact login publisher and deployment files remain
+  in the private repository because they include local account paths.
 
 ## 2026-10-11: Audio blocks automation-mode spindump
 

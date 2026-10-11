@@ -19,6 +19,7 @@ import publisher
 SOURCE = Path("/var/db/nsa_kernal_task/archive")
 REPO = Path.home() / "Library/Application Support/nsa_kernal_task/public_repo"
 PRIVATE_REPO = Path.home() / "Library/Application Support/nsa_kernal_task/repo"
+INSTALLED = Path("/Library/Application Support/nsa_kernal_task")
 STATE = Path.home() / "Library/Application Support/nsa_kernal_task/public-status.json"
 REMOTE = "https://github.com/eagleandtheclaw/nsa_kernal_task.git"
 GIT = "/usr/bin/git"
@@ -142,8 +143,18 @@ def publish_once():
     actual_code = sha256(Path(__file__).read_bytes())
     if actual_code != expected_code["public_export.py"]:
         raise RuntimeError("installed public exporter code hash mismatch")
+    collector_code = (INSTALLED / "capture.py").read_bytes()
+    if sha256(collector_code) != expected_code["capture.py"]:
+        raise RuntimeError("installed collector code hash mismatch")
+    if re.search(r"/Users/[A-Za-z0-9._-]+(?:/|\b)|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}",
+                 collector_code.decode("utf-8"), re.IGNORECASE):
+        raise RuntimeError("identifier in collector code; public source review required")
     run([GIT, "fetch", "origin", "main"], REPO)
     run([GIT, "merge", "--ff-only", "origin/main"], REPO)
+    public_code = REPO / "src" / "capture.py"
+    public_code.parent.mkdir(parents=True, exist_ok=True)
+    public_code.write_bytes(collector_code)
+    write_json(REPO / "SOURCE_HASHES.json", {"capture.py": sha256(collector_code)})
     head_path = REPO / "PUBLIC_CHAIN_HEAD.json"
     head = json.loads(head_path.read_text()) if head_path.exists() else {
         "sequence": 0, "body_sha256": "0" * 64}
@@ -185,7 +196,7 @@ def publish_once():
     write_json(REPO / "PUBLIC_HEARTBEAT.json", {
         "committed_at_utc": utc_now(), "last_sequence": sequence,
         "samples_in_commit": count, "nonce": secrets.token_hex(16)})
-    run([GIT, "add", "PUBLIC_CHAIN_HEAD.json", "PUBLIC_HEARTBEAT.json", "samples"], REPO)
+    run([GIT, "add", "PUBLIC_CHAIN_HEAD.json", "PUBLIC_HEARTBEAT.json", "SOURCE_HASHES.json", "src/capture.py", "samples"], REPO)
     run([GIT, "-c", "user.name=eagleandtheclaw",
          "-c", "user.email=318743460+eagleandtheclaw@users.noreply.github.com",
          "commit", "-m", "Publish sanitized kernel_task through sequence %d" % sequence], REPO)

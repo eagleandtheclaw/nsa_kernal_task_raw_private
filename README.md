@@ -33,6 +33,8 @@ macOS process is `kernel_task` (PID 0).
   unknown report lines or private-looking frame content stop publication.
   The public record keeps hashes of its sanitized report and signed original.
   It also makes random heartbeat commits every 3 to 6 minutes while online.
+  The exact installed collector source is mirrored publicly after a hash and
+  identifier scan; its public SHA-256 is recorded in `SOURCE_HASHES.json`.
 - GitHub credentials remain in the existing user's keyring. The boot daemon
   has no GitHub credential. Remote commits require a logged-in user session,
   working network, and valid GitHub authentication.
