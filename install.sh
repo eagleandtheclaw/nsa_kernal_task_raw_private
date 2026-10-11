@@ -43,7 +43,16 @@ sudo -n /bin/cat "$DATA_DIR/signing_key.pub" > "$PROJECT/collector.pub"
 if ! /usr/bin/git -C "$PROJECT" diff --quiet -- collector.pub CODE_HASHES.json || [[ -n "$(/usr/bin/git -C "$PROJECT" ls-files --others --exclude-standard collector.pub CODE_HASHES.json)" ]]; then
   /usr/bin/git -C "$PROJECT" add collector.pub CODE_HASHES.json
   /usr/bin/git -C "$PROJECT" -c user.name=eagleandtheclaw -c user.email=318743460+eagleandtheclaw@users.noreply.github.com commit -m "Publish collector verification key"
-  /usr/bin/git -C "$PROJECT" push origin main
+  pushed=0
+  for attempt in 1 2 3; do
+    /usr/bin/git -C "$PROJECT" fetch origin main
+    /usr/bin/git -C "$PROJECT" rebase origin/main
+    if /usr/bin/git -C "$PROJECT" push origin main; then
+      pushed=1
+      break
+    fi
+  done
+  [[ "$pushed" == 1 ]] || { echo "Failed to publish verification key after three attempts." >&2; exit 1; }
 fi
 
 /opt/homebrew/bin/gh auth setup-git
