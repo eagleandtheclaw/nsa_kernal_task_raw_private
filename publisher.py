@@ -200,7 +200,7 @@ def loop():
         start = time.monotonic()
         try:
             publish_once()
-            delay = 180 + secrets.randbelow(421)
+            delay = 180 + secrets.randbelow(181)
         except Exception as exc:
             message = {"state": "error", "updated_at_utc": utc_now(), "error": str(exc)}
             write_json(STATE, message)

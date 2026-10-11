@@ -22,7 +22,7 @@ macOS process is `kernel_task` (PID 0).
   publisher at login. The publisher verifies every pending signature,
   hash, and sequence link, then commits compressed samples to the private
   `eagleandtheclaw/nsa_kernal_task` repository. Its next attempt uses a
-  cryptographically random 3 to 10 minute delay. A new heartbeat commit is
+  cryptographically random 3 to 6 minute delay. A new heartbeat commit is
   created even when there is no new sample. Failed attempts retry after a
   random 30 to 60 seconds.
 - GitHub credentials remain in the existing user's keyring. The boot daemon
