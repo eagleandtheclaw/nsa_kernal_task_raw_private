@@ -130,6 +130,15 @@ def publish_once():
     chain = json.loads(chain_path.read_text()) if chain_path.exists() else {"sequence": 0, "body_sha256": "0" * 64}
     sequence = chain["sequence"]
     previous = chain["body_sha256"]
+    if sequence:
+        head_paths = list((REPO / "samples").glob("*/%08d_*.json.xz" % sequence))
+        if len(head_paths) != 1:
+            raise RuntimeError("published chain head sample missing or duplicated")
+        head_record, _ = read_sample(head_paths[0])
+        if head_record["body"]["sequence"] != sequence or head_record["body_sha256"] != previous:
+            raise RuntimeError("published chain head does not match signed sample")
+    elif previous != "0" * 64:
+        raise RuntimeError("zero-sequence chain head has nonzero hash")
     count = 0
     paths = sorted(ARCHIVE.glob("*.json.xz"))
     for path in paths:

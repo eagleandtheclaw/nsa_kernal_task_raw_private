@@ -18,6 +18,14 @@ RUNTIME_REPO="/Users/nick/Library/Application Support/nsa_kernal_task/repo"
 /usr/bin/plutil -lint "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$PROJECT/launchd/${AGENT_LABEL}.plist" "$PROJECT/login_item/Info.plist"
 /usr/bin/python3 -m py_compile "$PROJECT/capture.py" "$PROJECT/publisher.py" "$PROJECT/verify.py"
 sudo -n true
+capture_restart=1
+publisher_restart=1
+if sudo -n /usr/bin/cmp -s "$PROJECT/capture.py" "$SYSTEM_DIR/capture.py" && sudo -n /usr/bin/cmp -s "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$DAEMON_PLIST"; then
+  capture_restart=0
+fi
+if sudo -n /usr/bin/cmp -s "$PROJECT/publisher.py" "$SYSTEM_DIR/publisher.py" && sudo -n /usr/bin/cmp -s "$PROJECT/launchd/${AGENT_LABEL}.plist" "$AGENT_PLIST"; then
+  publisher_restart=0
+fi
 
 sudo -n /usr/bin/install -d -o root -g staff -m 0750 "$DATA_DIR" "$DATA_DIR/archive"
 if [[ ! -f "$DATA_DIR/signing_key" ]]; then
@@ -78,19 +86,23 @@ fi
 sudo -n /usr/sbin/chown root:staff "$DATA_DIR" "$DATA_DIR/archive"
 sudo -n /bin/chmod 0750 "$DATA_DIR" "$DATA_DIR/archive"
 
-if sudo -n /bin/launchctl print "system/$DAEMON_LABEL" >/dev/null 2>&1; then
-  sudo -n /bin/launchctl bootout "system/$DAEMON_LABEL"
+if [[ "$capture_restart" == 1 ]] || ! sudo -n /bin/launchctl print "system/$DAEMON_LABEL" >/dev/null 2>&1; then
+  if sudo -n /bin/launchctl print "system/$DAEMON_LABEL" >/dev/null 2>&1; then
+    sudo -n /bin/launchctl bootout "system/$DAEMON_LABEL"
+  fi
+  sudo -n /bin/launchctl bootstrap system "$DAEMON_PLIST"
+  sudo -n /bin/launchctl kickstart -k "system/$DAEMON_LABEL"
 fi
-sudo -n /bin/launchctl bootstrap system "$DAEMON_PLIST"
-sudo -n /bin/launchctl kickstart -k "system/$DAEMON_LABEL"
-if /bin/launchctl print "gui/$(id -u)/$AGENT_LABEL" >/dev/null 2>&1; then
-  /bin/launchctl bootout "gui/$(id -u)/$AGENT_LABEL"
+if [[ "$publisher_restart" == 1 ]] || ! /bin/launchctl print "gui/$(id -u)/$AGENT_LABEL" >/dev/null 2>&1; then
+  if /bin/launchctl print "gui/$(id -u)/$AGENT_LABEL" >/dev/null 2>&1; then
+    /bin/launchctl bootout "gui/$(id -u)/$AGENT_LABEL"
+  fi
+  /bin/launchctl bootstrap "gui/$(id -u)" "$AGENT_PLIST"
+  /bin/launchctl kickstart -k "gui/$(id -u)/$AGENT_LABEL"
 fi
 if [[ -f "$OLD_USER_AGENT" ]]; then
   /bin/rm "$OLD_USER_AGENT"
 fi
-/bin/launchctl bootstrap "gui/$(id -u)" "$AGENT_PLIST"
-/bin/launchctl kickstart -k "gui/$(id -u)/$AGENT_LABEL"
 if ! /usr/bin/osascript -e 'tell application "System Events" to exists login item "NSA Kernel Task Monitor"' | /usr/bin/grep -q true; then
   /usr/bin/osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/NSA Kernel Task Monitor.app", hidden:true}'
 fi

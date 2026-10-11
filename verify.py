@@ -26,12 +26,16 @@ def main():
         raise SystemExit("FAIL: no archived samples")
     selected = paths if args.all else paths[-1:]
     previous = None
+    prior_sequence = None
     for path in selected:
         record, compressed = publisher.read_sample(path)
         body = record["body"]
         if previous is not None and body["previous_body_sha256"] != previous:
             raise SystemExit("FAIL: local chain break at " + path.name)
+        if prior_sequence is not None and body["sequence"] != prior_sequence + 1:
+            raise SystemExit("FAIL: local sequence gap at " + path.name)
         previous = record["body_sha256"]
+        prior_sequence = body["sequence"]
         print("PASS sample", path.name, "sequence", body["sequence"],
               "sha256", publisher.sha256(compressed))
     latest_record, _ = publisher.read_sample(paths[-1])
