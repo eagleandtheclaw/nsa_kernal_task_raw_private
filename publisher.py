@@ -140,7 +140,8 @@ def publish_once():
             raise RuntimeError("sample sequence gap: expected %d, found %d" % (sequence + 1, prefix))
         record, compressed = read_sample(path)
         body = record["body"]
-        if body.get("collector_code_sha256") != expected_code["capture.py"]:
+        allowed_collector_hashes = expected_code.get("capture_history", [expected_code["capture.py"]])
+        if body.get("collector_code_sha256") not in allowed_collector_hashes:
             code_alerts.append("sample %d collector code hash mismatch" % prefix)
         if body["sequence"] != prefix or body["previous_body_sha256"] != previous:
             raise RuntimeError("sample chain mismatch: " + path.name)

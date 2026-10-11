@@ -33,6 +33,15 @@ from pathlib import Path
 project = Path(os.environ["PROJECT_PATH"])
 hashes = {name: hashlib.sha256((project / name).read_bytes()).hexdigest()
           for name in ("capture.py", "publisher.py")}
+existing = project / "CODE_HASHES.json"
+history = set()
+if existing.exists():
+    prior = json.loads(existing.read_text())
+    history.update(prior.get("capture_history", []))
+    if prior.get("capture.py"):
+        history.add(prior["capture.py"])
+history.add(hashes["capture.py"])
+hashes["capture_history"] = sorted(history)
 (project / "CODE_HASHES.json").write_text(json.dumps(hashes, sort_keys=True) + "\n")
 PY
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/CODE_HASHES.json" "$SYSTEM_DIR/CODE_HASHES.json"
