@@ -140,7 +140,7 @@ def capture_once():
     ARCHIVE.mkdir(mode=0o750, parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="capture-", dir=str(ROOT)) as tmp:
         raw_path = Path(tmp) / "system.spindump.txt"
-        command = [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary", "-automation", "-o", str(raw_path)]
+        command = [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary", "-o", str(raw_path)]
         try:
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=55)
         except subprocess.TimeoutExpired as exc:
@@ -165,7 +165,7 @@ def capture_once():
         "raw_target_report_sha256": raw_hash,
         "kernel_task_section_sha256": sha256(section_bytes),
         "raw_target_report": raw.decode("utf-8"),
-        "collector_command": [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary", "-automation"],
+        "collector_command": [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary"],
         "collector_uid": os.geteuid(),
         "collector_code_sha256": sha256(Path(__file__).read_bytes()),
     }

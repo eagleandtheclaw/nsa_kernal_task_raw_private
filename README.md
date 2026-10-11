@@ -11,6 +11,8 @@ macOS process is `kernel_task` (PID 0).
   capture starts 25 to 50 seconds apart. Processing delays, sleep, a stalled
   operating system, or a crashed collector can create longer gaps. Gaps are
   recorded and must be reviewed; this is no hard real-time guarantee.
+  `-automation` is deliberately omitted: on this host it made `spindump`
+  refuse a capture while audio was running.
 - The collector retains the complete PID 0 report, computes SHA-256 for it
   and its `kernel_task` process section, signs a canonical JSON record with a
   root-only Ed25519 key, compresses it with xz, and appends its hash to a
