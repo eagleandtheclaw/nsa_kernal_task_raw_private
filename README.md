@@ -47,6 +47,14 @@ ongoing CPU and disk cost. The
 archive and Git history grow until a separate, evidence-aware retention
 policy is adopted.
 
+On 2026-10-11, GitHub rejected a private-branch protection request with HTTP
+403: `Upgrade to GitHub Pro or make this repository public to enable this
+feature.` The repository remains private. Force-push and branch-deletion
+protection are not active. The initial bootstrap heartbeat reported a missing
+sample before the first capture completed; an upgrade later flagged captures
+from the previous approved collector version. Current code tracks that
+version history, and subsequent heartbeats have no active collector alert.
+
 ## Verify
 
 Check both launchd jobs, their status files, the signed archive, and the
