@@ -7,13 +7,15 @@ DATA_DIR="/var/db/nsa_kernal_task"
 DAEMON_LABEL="com.eagleandtheclaw.nsa-kernal-task.capture"
 AGENT_LABEL="com.eagleandtheclaw.nsa-kernal-task.publish"
 DAEMON_PLIST="/Library/LaunchDaemons/${DAEMON_LABEL}.plist"
-AGENT_PLIST="/Users/nick/Library/LaunchAgents/${AGENT_LABEL}.plist"
+AGENT_PLIST="/Library/LaunchAgents/${AGENT_LABEL}.plist"
+OLD_USER_AGENT="/Users/nick/Library/LaunchAgents/${AGENT_LABEL}.plist"
+LOGIN_APP="/Applications/NSA Kernel Task Monitor.app"
 RUNTIME_REPO="/Users/nick/Library/Application Support/nsa_kernal_task/repo"
 
 [[ "$(id -un)" == "nick" ]] || { echo "Run installer as nick." >&2; exit 1; }
 [[ "$(/opt/homebrew/bin/gh api user --jq .login)" == "eagleandtheclaw" ]] || { echo "GitHub account mismatch." >&2; exit 1; }
 [[ "$(/opt/homebrew/bin/gh repo view eagleandtheclaw/nsa_kernal_task --json visibility --jq .visibility)" == "PRIVATE" ]] || { echo "GitHub repository must be private." >&2; exit 1; }
-/usr/bin/plutil -lint "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$PROJECT/launchd/${AGENT_LABEL}.plist"
+/usr/bin/plutil -lint "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$PROJECT/launchd/${AGENT_LABEL}.plist" "$PROJECT/login_item/Info.plist"
 /usr/bin/python3 -m py_compile "$PROJECT/capture.py" "$PROJECT/publisher.py" "$PROJECT/verify.py"
 sudo -n true
 
@@ -46,7 +48,11 @@ hashes["capture_history"] = sorted(history)
 PY
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/CODE_HASHES.json" "$SYSTEM_DIR/CODE_HASHES.json"
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$DAEMON_PLIST"
-/usr/bin/install -m 0644 "$PROJECT/launchd/${AGENT_LABEL}.plist" "$AGENT_PLIST"
+sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/launchd/${AGENT_LABEL}.plist" "$AGENT_PLIST"
+sudo -n /usr/bin/install -d -o root -g wheel -m 0755 "$LOGIN_APP" "$LOGIN_APP/Contents" "$LOGIN_APP/Contents/MacOS"
+sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/login_item/Info.plist" "$LOGIN_APP/Contents/Info.plist"
+sudo -n /usr/bin/install -o root -g wheel -m 0755 "$PROJECT/login_item/monitor-login" "$LOGIN_APP/Contents/MacOS/monitor-login"
+sudo -n /usr/bin/codesign --force --sign - "$LOGIN_APP"
 
 sudo -n /bin/cat "$DATA_DIR/signing_key.pub" > "$PROJECT/collector.pub"
 if ! /usr/bin/git -C "$PROJECT" diff --quiet -- collector.pub CODE_HASHES.json || [[ -n "$(/usr/bin/git -C "$PROJECT" ls-files --others --exclude-standard collector.pub CODE_HASHES.json)" ]]; then
@@ -80,7 +86,13 @@ sudo -n /bin/launchctl kickstart -k "system/$DAEMON_LABEL"
 if /bin/launchctl print "gui/$(id -u)/$AGENT_LABEL" >/dev/null 2>&1; then
   /bin/launchctl bootout "gui/$(id -u)/$AGENT_LABEL"
 fi
+if [[ -f "$OLD_USER_AGENT" ]]; then
+  /bin/rm "$OLD_USER_AGENT"
+fi
 /bin/launchctl bootstrap "gui/$(id -u)" "$AGENT_PLIST"
 /bin/launchctl kickstart -k "gui/$(id -u)/$AGENT_LABEL"
+if ! /usr/bin/osascript -e 'tell application "System Events" to exists login item "NSA Kernel Task Monitor"' | /usr/bin/grep -q true; then
+  /usr/bin/osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/NSA Kernel Task Monitor.app", hidden:true}'
+fi
 echo "Installed capture daemon and login publisher. Verify live status with:"
 echo "/usr/bin/python3 '$PROJECT/verify.py'"

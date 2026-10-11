@@ -51,6 +51,17 @@ def main():
                 failures.append("launchd %s loaded but not running" % label)
             else:
                 print("PASS launchd", label, "running")
+    rc, output, error = command(["/usr/bin/osascript", "-e",
+        'tell application "System Events" to exists login item "NSA Kernel Task Monitor"'])
+    if rc or output != "true":
+        failures.append("classic Login Item missing: " + (error or output))
+    else:
+        print("PASS classic Login Item NSA Kernel Task Monitor")
+    rc, _, error = command(["/usr/bin/codesign", "--verify", "/Applications/NSA Kernel Task Monitor.app"])
+    if rc:
+        failures.append("Login Item code signature: " + error)
+    else:
+        print("PASS Login Item code signature")
     rc, output, error = command([publisher.GIT, "ls-remote", publisher.EXPECTED_REMOTE, "refs/heads/main"])
     if rc:
         failures.append("remote: " + error)

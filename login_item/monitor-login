@@ -1,0 +1,7 @@
+#!/bin/sh
+label="com.eagleandtheclaw.nsa-kernal-task.publish"
+domain="gui/$(/usr/bin/id -u)"
+if ! /bin/launchctl print "$domain/$label" >/dev/null 2>&1; then
+  /bin/launchctl bootstrap "$domain" "/Library/LaunchAgents/$label.plist" || exit 1
+fi
+/bin/launchctl kickstart "$domain/$label"

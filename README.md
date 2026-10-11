@@ -17,7 +17,9 @@ macOS process is `kernel_task` (PID 0).
   chained manifest. Other processes are excluded at acquisition.
 - Root owns `/var/db/nsa_kernal_task`. The capture archive is readable by
   the `staff` group and writable only by root. The signing key is root-only.
-- A user LaunchAgent starts on login. It verifies every pending signature,
+- A root-owned LaunchAgent starts in the user's login session. A separate
+  classic Login Item appears as `NSA Kernel Task Monitor` and restarts the
+  publisher at login. The publisher verifies every pending signature,
   hash, and sequence link, then commits compressed samples to the private
   `eagleandtheclaw/nsa_kernal_task` repository. Its next attempt uses a
   cryptographically random 3 to 10 minute delay. A new heartbeat commit is
