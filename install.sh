@@ -6,25 +6,32 @@ SYSTEM_DIR="/Library/Application Support/nsa_kernal_task"
 DATA_DIR="/var/db/nsa_kernal_task"
 DAEMON_LABEL="com.eagleandtheclaw.nsa-kernal-task.capture"
 AGENT_LABEL="com.eagleandtheclaw.nsa-kernal-task.publish"
+PUBLIC_AGENT_LABEL="com.eagleandtheclaw.nsa-kernal-task.public"
 DAEMON_PLIST="/Library/LaunchDaemons/${DAEMON_LABEL}.plist"
 AGENT_PLIST="/Library/LaunchAgents/${AGENT_LABEL}.plist"
+PUBLIC_AGENT_PLIST="/Library/LaunchAgents/${PUBLIC_AGENT_LABEL}.plist"
 OLD_USER_AGENT="/Users/nick/Library/LaunchAgents/${AGENT_LABEL}.plist"
 LOGIN_APP="/Applications/NSA Kernel Task Monitor.app"
 RUNTIME_REPO="/Users/nick/Library/Application Support/nsa_kernal_task/repo"
 
 [[ "$(id -un)" == "nick" ]] || { echo "Run installer as nick." >&2; exit 1; }
 [[ "$(/opt/homebrew/bin/gh api user --jq .login)" == "eagleandtheclaw" ]] || { echo "GitHub account mismatch." >&2; exit 1; }
-[[ "$(/opt/homebrew/bin/gh repo view eagleandtheclaw/nsa_kernal_task --json visibility --jq .visibility)" == "PRIVATE" ]] || { echo "GitHub repository must be private." >&2; exit 1; }
-/usr/bin/plutil -lint "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$PROJECT/launchd/${AGENT_LABEL}.plist" "$PROJECT/login_item/Info.plist"
-/usr/bin/python3 -m py_compile "$PROJECT/capture.py" "$PROJECT/publisher.py" "$PROJECT/verify.py"
+[[ "$(/opt/homebrew/bin/gh repo view eagleandtheclaw/nsa_kernal_task_raw_private --json visibility --jq .visibility)" == "PRIVATE" ]] || { echo "Raw GitHub repository must be private." >&2; exit 1; }
+[[ "$(/opt/homebrew/bin/gh repo view eagleandtheclaw/nsa_kernal_task --json visibility --jq .visibility)" == "PUBLIC" ]] || { echo "Sanitized GitHub repository must be public." >&2; exit 1; }
+/usr/bin/plutil -lint "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$PROJECT/launchd/${AGENT_LABEL}.plist" "$PROJECT/launchd/${PUBLIC_AGENT_LABEL}.plist" "$PROJECT/login_item/Info.plist"
+/usr/bin/python3 -m py_compile "$PROJECT/capture.py" "$PROJECT/publisher.py" "$PROJECT/public_export.py" "$PROJECT/verify.py"
 sudo -n true
 capture_restart=1
 publisher_restart=1
+public_restart=1
 if sudo -n /usr/bin/cmp -s "$PROJECT/capture.py" "$SYSTEM_DIR/capture.py" && sudo -n /usr/bin/cmp -s "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$DAEMON_PLIST"; then
   capture_restart=0
 fi
 if sudo -n /usr/bin/cmp -s "$PROJECT/publisher.py" "$SYSTEM_DIR/publisher.py" && sudo -n /usr/bin/cmp -s "$PROJECT/launchd/${AGENT_LABEL}.plist" "$AGENT_PLIST"; then
   publisher_restart=0
+fi
+if sudo -n /usr/bin/cmp -s "$PROJECT/public_export.py" "$SYSTEM_DIR/public_export.py" && sudo -n /usr/bin/cmp -s "$PROJECT/launchd/${PUBLIC_AGENT_LABEL}.plist" "$PUBLIC_AGENT_PLIST"; then
+  public_restart=0
 fi
 
 sudo -n /usr/bin/install -d -o root -g staff -m 0750 "$DATA_DIR" "$DATA_DIR/archive"
@@ -37,12 +44,13 @@ sudo -n /bin/chmod 0644 "$DATA_DIR/signing_key.pub"
 sudo -n /usr/bin/install -d -o root -g wheel -m 0755 "$SYSTEM_DIR"
 sudo -n /usr/bin/install -o root -g wheel -m 0755 "$PROJECT/capture.py" "$SYSTEM_DIR/capture.py"
 sudo -n /usr/bin/install -o root -g wheel -m 0755 "$PROJECT/publisher.py" "$SYSTEM_DIR/publisher.py"
+sudo -n /usr/bin/install -o root -g wheel -m 0755 "$PROJECT/public_export.py" "$SYSTEM_DIR/public_export.py"
 PROJECT_PATH="$PROJECT" /usr/bin/python3 - <<'PY'
 import hashlib, json, os
 from pathlib import Path
 project = Path(os.environ["PROJECT_PATH"])
 hashes = {name: hashlib.sha256((project / name).read_bytes()).hexdigest()
-          for name in ("capture.py", "publisher.py")}
+          for name in ("capture.py", "publisher.py", "public_export.py")}
 existing = project / "CODE_HASHES.json"
 history = set()
 if existing.exists():
@@ -57,6 +65,7 @@ PY
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/CODE_HASHES.json" "$SYSTEM_DIR/CODE_HASHES.json"
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/launchd/${DAEMON_LABEL}.plist" "$DAEMON_PLIST"
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/launchd/${AGENT_LABEL}.plist" "$AGENT_PLIST"
+sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/launchd/${PUBLIC_AGENT_LABEL}.plist" "$PUBLIC_AGENT_PLIST"
 sudo -n /usr/bin/install -d -o root -g wheel -m 0755 "$LOGIN_APP" "$LOGIN_APP/Contents" "$LOGIN_APP/Contents/MacOS"
 sudo -n /usr/bin/install -o root -g wheel -m 0644 "$PROJECT/login_item/Info.plist" "$LOGIN_APP/Contents/Info.plist"
 sudo -n /usr/bin/install -o root -g wheel -m 0755 "$PROJECT/login_item/monitor-login" "$LOGIN_APP/Contents/MacOS/monitor-login"
@@ -81,7 +90,10 @@ fi
 /opt/homebrew/bin/gh auth setup-git
 /bin/mkdir -p "/Users/nick/Library/Application Support/nsa_kernal_task" "/Users/nick/Library/Logs/nsa_kernal_task"
 if [[ ! -d "$RUNTIME_REPO/.git" ]]; then
-  /usr/bin/git clone --depth 1 "https://github.com/eagleandtheclaw/nsa_kernal_task.git" "$RUNTIME_REPO"
+  /usr/bin/git clone --depth 1 "https://github.com/eagleandtheclaw/nsa_kernal_task_raw_private.git" "$RUNTIME_REPO"
+fi
+if [[ ! -d "/Users/nick/Library/Application Support/nsa_kernal_task/public_repo/.git" ]]; then
+  /usr/bin/git clone --depth 1 "https://github.com/eagleandtheclaw/nsa_kernal_task.git" "/Users/nick/Library/Application Support/nsa_kernal_task/public_repo"
 fi
 sudo -n /usr/sbin/chown root:staff "$DATA_DIR" "$DATA_DIR/archive"
 sudo -n /bin/chmod 0750 "$DATA_DIR" "$DATA_DIR/archive"
@@ -100,11 +112,18 @@ if [[ "$publisher_restart" == 1 ]] || ! /bin/launchctl print "gui/$(id -u)/$AGEN
   /bin/launchctl bootstrap "gui/$(id -u)" "$AGENT_PLIST"
   /bin/launchctl kickstart -k "gui/$(id -u)/$AGENT_LABEL"
 fi
+if [[ "$public_restart" == 1 ]] || ! /bin/launchctl print "gui/$(id -u)/$PUBLIC_AGENT_LABEL" >/dev/null 2>&1; then
+  if /bin/launchctl print "gui/$(id -u)/$PUBLIC_AGENT_LABEL" >/dev/null 2>&1; then
+    /bin/launchctl bootout "gui/$(id -u)/$PUBLIC_AGENT_LABEL"
+  fi
+  /bin/launchctl bootstrap "gui/$(id -u)" "$PUBLIC_AGENT_PLIST"
+  /bin/launchctl kickstart -k "gui/$(id -u)/$PUBLIC_AGENT_LABEL"
+fi
 if [[ -f "$OLD_USER_AGENT" ]]; then
   /bin/rm "$OLD_USER_AGENT"
 fi
 if ! /usr/bin/osascript -e 'tell application "System Events" to exists login item "NSA Kernel Task Monitor"' | /usr/bin/grep -q true; then
   /usr/bin/osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/NSA Kernel Task Monitor.app", hidden:true}'
 fi
-echo "Installed capture daemon and login publisher. Verify live status with:"
+echo "Installed capture daemon and private/public login publishers. Verify live status with:"
 echo "/usr/bin/python3 '$PROJECT/verify.py'"

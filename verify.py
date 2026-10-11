@@ -4,11 +4,14 @@
 import argparse
 import datetime as dt
 import json
+import lzma
 import os
+from pathlib import Path
 import subprocess
 import sys
 
 import publisher
+import public_export
 
 
 def command(argv):
@@ -46,6 +49,7 @@ def main():
     for domain, label in [
         ("system", "com.eagleandtheclaw.nsa-kernal-task.capture"),
         ("gui/%d" % os.getuid(), "com.eagleandtheclaw.nsa-kernal-task.publish"),
+        ("gui/%d" % os.getuid(), "com.eagleandtheclaw.nsa-kernal-task.public"),
     ]:
         rc, output, error = command(["/bin/launchctl", "print", domain + "/" + label])
         if rc:
@@ -85,6 +89,54 @@ def main():
             failures.append("publisher state stale, failed, or alerting")
     else:
         failures.append("publisher state missing")
+    public_head = public_export.REPO / "PUBLIC_CHAIN_HEAD.json"
+    if not public_head.exists():
+        failures.append("public chain head missing")
+    else:
+        try:
+            head = json.loads(public_head.read_text())
+            public_paths = sorted((public_export.REPO / "samples").glob("*/*.json.xz"))
+            if len(public_paths) != head["sequence"]:
+                raise RuntimeError("public sample count differs from chain head")
+            selected_public = public_paths if args.all else public_paths[-1:]
+            previous_public = "0" * 64
+            for path in selected_public:
+                stored = json.loads(lzma.decompress(path.read_bytes()))
+                body = stored["body"]
+                if not args.all:
+                    previous_public = body["previous_public_body_sha256"]
+                if body["sequence"] != int(path.name.split("_", 1)[0]):
+                    raise RuntimeError("public sample sequence mismatch")
+                source = publisher.ARCHIVE / path.name
+                expected_body, expected_hash, expected_packed = public_export.build_public_record(source, previous_public)
+                if body != expected_body or stored["body_sha256"] != expected_hash or path.read_bytes() != expected_packed:
+                    raise RuntimeError("public derivative or hash mismatch at " + path.name)
+                previous_public = expected_hash
+            if selected_public and previous_public != head["body_sha256"]:
+                raise RuntimeError("public chain head hash mismatch")
+            print("PASS public sanitized chain through sequence", head["sequence"])
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            failures.append("public sample verification: " + str(exc))
+    rc, output, error = command([publisher.GIT, "ls-remote", public_export.REMOTE, "refs/heads/main"])
+    if rc:
+        failures.append("public remote: " + error)
+    else:
+        public_remote = output.split()[0] if output else "missing"
+        rc, local, error = command([publisher.GIT, "-C", str(public_export.REPO), "rev-parse", "HEAD"])
+        if rc or local != public_remote:
+            failures.append("public clone and remote main differ")
+        else:
+            print("PASS public remote main", public_remote)
+    if public_export.STATE.exists():
+        value = json.loads(public_export.STATE.read_text())
+        age = (dt.datetime.now(dt.timezone.utc) -
+               dt.datetime.fromisoformat(value["updated_at_utc"])).total_seconds()
+        if value.get("state") != "published" or age > 780:
+            failures.append("public exporter state stale or failed")
+        else:
+            print("PASS public exporter state", value["commit"])
+    else:
+        failures.append("public exporter state missing")
     if failures:
         for failure in failures:
             print("FAIL", failure, file=sys.stderr)

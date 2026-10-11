@@ -7,9 +7,38 @@ import unittest
 
 import capture
 import publisher
+import public_export
 
 
 class CaptureTests(unittest.TestCase):
+    def test_public_export_omits_identifier_header_and_thread_address(self):
+        section = (
+            "Process:          kernel_task [0]\n"
+            "UUID:             12345678-1234-1234-1234-123456789abc\n"
+            "Num samples:      2 (1-2)\n"
+            "  Thread 0x1234    Thread name \"private-name\"    2 samples (1-2)\n"
+            "  *2  example_symbol (kernel + 12) [0xabc123]\n"
+            "  Binary Images: /Users/nick/private\n"
+        )
+        report, threads, frames = public_export.sanitize({"body": {
+            "schema": 1, "kernel_task_section": section, "kernel_task_num_samples": 2}})
+        self.assertEqual((threads, frames), (1, 1))
+        self.assertIn("example_symbol", report)
+        self.assertNotIn("private-name", report)
+        self.assertNotIn("/Users/", report)
+        self.assertNotIn("0x", report)
+        self.assertNotIn("12345678-", report)
+
+    def test_public_export_rejects_private_frame(self):
+        section = (
+            "Process:          kernel_task [0]\nNum samples:      1 (1-1)\n"
+            "  Thread 0x1234    1 sample (1)\n"
+            "  *1  /Users/nick/private [0xabc123]\n"
+        )
+        with self.assertRaisesRegex(RuntimeError, "private field"):
+            public_export.sanitize({"body": {"schema": 1,
+                "kernel_task_section": section, "kernel_task_num_samples": 1}})
+
     def test_extracts_only_kernel_task(self):
         report = (
             "Date/Time: 2026-10-11 12:00:00 +0000\nDuration: 1.00s\n"

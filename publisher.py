@@ -28,7 +28,7 @@ GIT = "/usr/bin/git"
 GH = "/opt/homebrew/bin/gh"
 NAMESPACE = "nsa_kernal_task"
 EXPECTED_LOGIN = "eagleandtheclaw"
-EXPECTED_REMOTE = "https://github.com/eagleandtheclaw/nsa_kernal_task.git"
+EXPECTED_REMOTE = "https://github.com/eagleandtheclaw/nsa_kernal_task_raw_private.git"
 INSTALLED = Path("/Library/Application Support/nsa_kernal_task")
 
 
