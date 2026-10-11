@@ -2,8 +2,10 @@
 
 ## 2026-10-11: Audio blocks automation-mode spindump
 
-- Status: reproduction succeeded without `-automation`; installation and
-  recurrence check pending.
+- Status: mitigated and verified live at 2026-10-11 14:21 UTC. Installed
+  collector omits `-automation`; signed sequence 22 captured successfully,
+  and publisher committed it to the private remote as
+  `bf53c1a4cded7e58b0514851ddec5f1ff902b9d4` with no collector alert.
 - Component: `/usr/sbin/spindump` invoked by
   `com.eagleandtheclaw.nsa-kernal-task.capture`.
 - Exact command: `spindump 0 1 100 -onlyTarget -noBinary -automation`.
@@ -13,10 +15,17 @@
 - Error: `spindump failed (69)` with `Unable to sample due to audio running`.
 - Effect: the collector retries, but this attempt did not create a sample.
   The publisher committed the collector alert in Git commit
-  `f78834af44a37d8bb3538be10d9f6e7aa4d14287`.
-- Next action: test targeted PID 0 sampling without `-automation` while audio
-  is running, then update the installed collector if it succeeds.
+  `f78834af44a37d8bb3538be10d9f6e7aa4d14287`. The longest observed
+  gap between successful capture starts across sequences 1 through 23 was
+  218.638 seconds, including this incident and the collector restart.
+- Next action: observe continued sampling and publishing across future audio
+  playback, sleep, and reboot; any resulting gap remains evidence to examine.
 - Test result: `sudo -n spindump 0 1 100 -onlyTarget -noBinary -o
   /Users/nick/CURSOR/SYSTEM_GEN/diagnostics/kernal_task/kernel_task_audio_test.spindump.txt`
   exited 0 and wrote a report immediately after the failure. This isolates
   the `-automation` option as the distinguishing setting in this session.
+- Verification: `/usr/bin/python3 verify.py --all` passed the signed archive
+  through sequence 22, both running launchd jobs, the Login Item signature,
+  publisher state, and remote main. The report for sequence 22 records the
+  installed command without `-automation` and has compressed SHA-256
+  `1ab2dfc0e78339c890aae7b142d9474062d66c0c177fd8c6b78762acb726f072`.
