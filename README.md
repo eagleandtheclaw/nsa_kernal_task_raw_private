@@ -67,6 +67,9 @@ protection are not active. The initial bootstrap heartbeat reported a missing
 sample before the first capture completed; an upgrade later flagged captures
 from the previous approved collector version. Current code tracks that
 version history, and subsequent heartbeats have no active collector alert.
+The public repository's `main` branch has protection against force pushes and
+deletion, including for administrators, while normal scheduled commits remain
+allowed. An account administrator can still change the protection settings.
 
 ## Verify
 

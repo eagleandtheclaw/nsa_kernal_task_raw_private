@@ -1,5 +1,31 @@
 # Operations log
 
+## 2026-10-11: Public sanitized repository migration
+
+- The original repository was renamed to the private
+  `eagleandtheclaw/nsa_kernal_task_raw_private` (GitHub repository ID
+  `1414404209`). Its signed original reports and Git history remain private.
+- A separate repository was created at the requested public URL
+  `https://github.com/eagleandtheclaw/nsa_kernal_task` (ID `1414431332`).
+  Its first commit `d442896872b0c80c95da8e37a2ae7e6309739f9c` had one
+  fresh root history and 40 sanitized sample files. The published compressed
+  objects had zero SHA-256 overlap with the original compressed objects.
+- The local source and running private publisher were repointed to the
+  renamed private repository before the new public repository was created.
+  The collector kept running during the change. A new root-owned login
+  LaunchAgent now publishes sanitized derivatives and random heartbeats.
+- Fresh clone audit passed `verify_public.py`, an identifier scan, and an
+  anonymous HTTP 200 read of the repository and sample 44 with matching
+  SHA-256. Both publishers and the collector passed `verify.py --all` through
+  sequence 44. A later normal public commit reached sequence 45.
+- Public `main` branch protection is active: normal commits are allowed;
+  force pushes and branch deletion are disabled, including for administrators.
+  An account administrator can change these settings, so this is an
+  additional barrier rather than independent tamper proofing.
+- Public derivatives preserve the private original's hashes but do not carry
+  its root signature. Provenance verification still requires the private
+  signed original. Full raw content is not in the public repository.
+
 ## 2026-10-11: Audio blocks automation-mode spindump
 
 - Status: mitigated and verified live at 2026-10-11 14:21 UTC. Installed

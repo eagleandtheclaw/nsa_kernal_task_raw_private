@@ -149,6 +149,18 @@ def publish_once():
         "sequence": 0, "body_sha256": "0" * 64}
     sequence = head["sequence"]
     previous = head["body_sha256"]
+    previous_original = "0" * 64
+    if sequence:
+        published = list((REPO / "samples").glob("*/%08d_*.json.xz" % sequence))
+        source_head = list(SOURCE.glob("%08d_*.json.xz" % sequence))
+        if len(published) != 1 or len(source_head) != 1:
+            raise RuntimeError("public or private chain head sample missing")
+        public_record = json.loads(lzma.decompress(published[0].read_bytes()))
+        original_record, _ = publisher.read_sample(source_head[0])
+        if (public_record["body_sha256"] != previous or
+                public_record["body"]["original_body_sha256"] != original_record["body_sha256"]):
+            raise RuntimeError("public and signed original heads differ")
+        previous_original = original_record["body_sha256"]
     count = 0
     for path in sorted(SOURCE.glob("*.json.xz")):
         number = int(path.name.split("_", 1)[0])
@@ -156,11 +168,16 @@ def publish_once():
             continue
         if number != sequence + 1:
             raise RuntimeError("public sample sequence gap")
+        original_record, _ = publisher.read_sample(path)
+        if (original_record["body"]["sequence"] != number or
+                original_record["body"]["previous_body_sha256"] != previous_original):
+            raise RuntimeError("signed original sequence or chain mismatch")
         public_body, body_hash, packed = build_public_record(path, previous)
         output = REPO / "samples" / public_body["capture_started_utc"][:10] / path.name
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(packed)
         previous = body_hash
+        previous_original = original_record["body_sha256"]
         sequence = number
         count += 1
     write_json(head_path, {"sequence": sequence, "body_sha256": previous,
