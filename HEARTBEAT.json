@@ -1,1 +1,1 @@
-{"collector_alert":"sample 3 collector code hash mismatch; sample 4 collector code hash mismatch; sample 5 collector code hash mismatch; sample 6 collector code hash mismatch","committed_at_utc":"2026-10-11T14:09:24.943+00:00","last_capture_age_seconds":7,"last_sequence":7,"nonce":"f0c9de56a636734740e08938d046b047","samples_in_commit":5}
+{"collector_alert":null,"committed_at_utc":"2026-10-11T14:10:38.919+00:00","last_capture_age_seconds":7,"last_sequence":9,"nonce":"aa51caf2b19dc1b786354f70c638ad96","samples_in_commit":2}
