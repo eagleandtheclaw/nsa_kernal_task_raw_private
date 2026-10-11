@@ -140,7 +140,7 @@ def capture_once():
     ARCHIVE.mkdir(mode=0o750, parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="capture-", dir=str(ROOT)) as tmp:
         raw_path = Path(tmp) / "system.spindump.txt"
-        command = [SPINDUMP, "-noTarget", "1", "100", "-noBinary", "-automation", "-o", str(raw_path)]
+        command = [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary", "-automation", "-o", str(raw_path)]
         try:
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=55)
         except subprocess.TimeoutExpired as exc:
@@ -152,7 +152,7 @@ def capture_once():
         section, sample_count, report_date, report_duration = extract_kernel_task(raw)
     section_bytes = section.encode("utf-8")
     body = {
-        "schema": 1,
+        "schema": 2,
         "sequence": sequence,
         "previous_body_sha256": previous_hash,
         "capture_started_utc": started_utc,
@@ -162,10 +162,10 @@ def capture_once():
         "report_duration": report_duration,
         "kernel_task_pid": 0,
         "kernel_task_num_samples": sample_count,
-        "raw_system_report_sha256": raw_hash,
+        "raw_target_report_sha256": raw_hash,
         "kernel_task_section_sha256": sha256(section_bytes),
-        "kernel_task_section": section,
-        "collector_command": [SPINDUMP, "-noTarget", "1", "100", "-noBinary", "-automation"],
+        "raw_target_report": raw.decode("utf-8"),
+        "collector_command": [SPINDUMP, "0", "1", "100", "-onlyTarget", "-noBinary", "-automation"],
         "collector_uid": os.geteuid(),
         "collector_code_sha256": sha256(Path(__file__).read_bytes()),
     }
@@ -183,7 +183,7 @@ def capture_once():
         "body_sha256": body_hash,
         "previous_body_sha256": previous_hash,
         "kernel_task_section_sha256": body["kernel_task_section_sha256"],
-        "raw_system_report_sha256": raw_hash,
+        "raw_target_report_sha256": raw_hash,
         "compressed_sha256": sha256(packed),
         "compressed_bytes": len(packed),
         "capture_started_utc": started_utc,

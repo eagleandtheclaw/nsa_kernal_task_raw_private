@@ -6,16 +6,15 @@ macOS process is `kernel_task` (PID 0).
 
 ## Operation
 
-- A root LaunchDaemon starts at boot. It uses the system `spindump` tool for
+- A root LaunchDaemon starts at boot. It uses `spindump 0 -onlyTarget` for
   one second at 100 ms intervals. A cryptographically random delay targets
   capture starts 25 to 50 seconds apart. Processing delays, sleep, a stalled
   operating system, or a crashed collector can create longer gaps. Gaps are
   recorded and must be reviewed; this is no hard real-time guarantee.
-- The collector extracts the full `kernel_task` process section, computes
-  SHA-256 for the temporary full report and the extracted section, signs a
-  canonical JSON record with a root-only Ed25519 key, compresses it with xz,
-  and appends its hash to a chained manifest. The full system report is then
-  discarded to limit storage and unrelated process exposure.
+- The collector retains the complete PID 0 report, computes SHA-256 for it
+  and its `kernel_task` process section, signs a canonical JSON record with a
+  root-only Ed25519 key, compresses it with xz, and appends its hash to a
+  chained manifest. Other processes are excluded at acquisition.
 - Root owns `/var/db/nsa_kernal_task`. The capture archive is readable by
   the `staff` group and writable only by root. The signing key is root-only.
 - A user LaunchAgent starts on login. It verifies every pending signature,
@@ -30,10 +29,9 @@ macOS process is `kernel_task` (PID 0).
 
 ## Evidence and limitations
 
-The signed record contains exact `kernel_task` stack text and hashes of both
-the original temporary report and extracted section. The original full
-report is not retained, so its hash cannot be rechecked later. The extracted
-section can be rechecked against its hash and Ed25519 signature. A SHA-256
+The signed record contains the complete PID 0 report and hashes of both
+that report and its extracted `kernel_task` section. Both hashes can be
+rechecked later, together with the Ed25519 signature. A SHA-256
 chain detects modification of retained records when compared with a previously
 published head. Neither local root ownership nor a private GitHub repository
 is tamper-proof against an adversary with root access and control of the same
@@ -41,9 +39,9 @@ GitHub account. Independent external monitoring and account separation would
 be needed for stronger assurance. `kernel_task` stacks alone do not establish
 attribution or capture every userspace action.
 
-The benchmark on this host produced a 4.6 MB full-system report in 11.62
-seconds. A prior full `kernel_task` section of 226.9 KB compressed to 29 KB
-with xz preset 6. Continuous capture has ongoing CPU and disk cost. The
+The targeted benchmark on this host produced a 190.9 KB report with ten
+stack samples; xz preset 6 compressed it to 24.6 KB. Continuous capture has
+ongoing CPU and disk cost. The
 archive and Git history grow until a separate, evidence-aware retention
 policy is adopted.
 

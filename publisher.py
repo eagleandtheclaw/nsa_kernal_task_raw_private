@@ -14,6 +14,8 @@ import sys
 import tempfile
 import time
 
+import capture
+
 
 ROOT = Path(os.environ.get("NSA_KERNEL_ROOT", "/var/db/nsa_kernal_task"))
 ARCHIVE = ROOT / "archive"
@@ -82,9 +84,20 @@ def read_sample(path):
     body_bytes = canonical(body)
     if sha256(body_bytes) != record["body_sha256"]:
         raise RuntimeError("sample body hash mismatch: " + path.name)
-    if sha256(body["kernel_task_section"].encode("utf-8")) != body["kernel_task_section_sha256"]:
+    if body.get("schema") == 2:
+        report = body["raw_target_report"].encode("utf-8")
+        if sha256(report) != body["raw_target_report_sha256"]:
+            raise RuntimeError("raw target report hash mismatch: " + path.name)
+        section, count, _, _ = capture.extract_kernel_task(report)
+        if count != body["kernel_task_num_samples"]:
+            raise RuntimeError("kernel_task sample count mismatch: " + path.name)
+        if report.count(b"\nProcess:") != 1:
+            raise RuntimeError("target report includes another process: " + path.name)
+    else:
+        section = body["kernel_task_section"]
+    if sha256(section.encode("utf-8")) != body["kernel_task_section_sha256"]:
         raise RuntimeError("kernel_task section hash mismatch: " + path.name)
-    if body["kernel_task_pid"] != 0 or "Process:          kernel_task [0]" not in body["kernel_task_section"]:
+    if body["kernel_task_pid"] != 0 or "Process:          kernel_task [0]" not in section:
         raise RuntimeError("sample does not contain kernel_task [0]: " + path.name)
     verify_signature(body_bytes, record["signature"])
     return record, compressed
