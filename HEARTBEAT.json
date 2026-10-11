@@ -1,1 +1,1 @@
-{"collector_alert":"collector error: spindump timed out after 55 seconds","committed_at_utc":"2026-10-11T16:27:24.924+00:00","last_capture_age_seconds":606,"last_sequence":190,"nonce":"c3ef7c19f191b02dc8671fae6aa07ee5","samples_in_commit":1}
+{"collector_alert":"collector error: spindump report has no kernel_task [0] section","committed_at_utc":"2026-10-11T16:27:44.757+00:00","last_capture_age_seconds":625,"last_sequence":190,"nonce":"44ac00d69ecf260c607053e1f8ab437b","samples_in_commit":0}
