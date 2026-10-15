@@ -1,1 +1,1 @@
-{"collector_alert":"collector error: spindump timed out after 55 seconds","committed_at_utc":"2026-10-15T19:37:17.657+00:00","last_capture_age_seconds":357,"last_sequence":6896,"nonce":"fce59b8f47df6f1746fe7a7b9bc7984c","samples_in_commit":3}
+{"collector_alert":null,"committed_at_utc":"2026-10-15T19:42:57.666+00:00","last_capture_age_seconds":9,"last_sequence":6904,"nonce":"aaf9ce4226b878e23bc8c184846a0296","samples_in_commit":8}
