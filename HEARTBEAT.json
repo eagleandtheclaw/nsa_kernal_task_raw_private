@@ -1,1 +1,1 @@
-{"collector_alert":"collector sample gap exceeds 90 seconds","committed_at_utc":"2026-10-17T16:20:14.966+00:00","last_capture_age_seconds":91,"last_sequence":9771,"nonce":"f0204daadf7ca80eb51189806b37ac86","samples_in_commit":8}
+{"collector_alert":"collector error: spindump timed out after 55 seconds","committed_at_utc":"2026-10-17T16:25:22.585+00:00","last_capture_age_seconds":301,"last_sequence":9773,"nonce":"b60573b2a888d1f9f3170e4a6c823bb3","samples_in_commit":2}
