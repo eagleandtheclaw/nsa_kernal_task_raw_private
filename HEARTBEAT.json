@@ -1,1 +1,1 @@
-{"collector_alert":null,"committed_at_utc":"2026-10-17T02:18:18.177+00:00","last_capture_age_seconds":7,"last_sequence":9244,"nonce":"12b23f92161bf42ab4d5583c0d83d181","samples_in_commit":6}
+{"collector_alert":"collector sample gap exceeds 90 seconds","committed_at_utc":"2026-10-17T03:45:01.744+00:00","last_capture_age_seconds":1361,"last_sequence":9249,"nonce":"e4aef9bead3b53427dc0a40270ad44bb","samples_in_commit":5}
